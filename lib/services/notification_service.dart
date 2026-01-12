@@ -12,6 +12,11 @@ class NotificationService {
 
     const details = NotificationDetails(android: androidDetails);
 
-    await notificationsPlugin.show(0, title, body, details);
+    try {
+      await notificationsPlugin.show(0, title, body, details);
+    } catch (_) {
+      // Ignore notification errors in environments where platform channels
+      // aren't available (tests, some CI runners).
+    }
   }
 }

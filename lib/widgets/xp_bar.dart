@@ -12,7 +12,9 @@ class XPBar extends StatelessWidget {
       children: [
         Text("XP: $xp / $max"),
         SizedBox(height: 6),
-        LinearProgressIndicator(value: xp / max),
+        LinearProgressIndicator(
+          value: max > 0 ? (xp / max).clamp(0.0, 1.0) : 0.0,
+        ),
       ],
     );
   }

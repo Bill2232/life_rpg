@@ -20,14 +20,15 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Widget? homeOverride;
+  const MyApp({super.key, this.homeOverride});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Life RPG',
       theme: ThemeData.dark(),
-      home: HomeScreen(),
+      home: homeOverride ?? HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

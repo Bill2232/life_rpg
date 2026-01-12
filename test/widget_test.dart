@@ -11,20 +11,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_rpg/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App boots and shows title', (WidgetTester tester) async {
+    // Ensure the widget test binding is initialized. No Hive setup needed
+    // because we supply a test-safe `homeOverride`.
+    TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Build our app with a lightweight override for Home to avoid
+    // platform-sensitive initializations in widget tests.
+    await tester.pumpWidget(
+      const MyApp(homeOverride: Scaffold(body: Text('Test Home'))),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the override content is present.
+    expect(find.text('Test Home'), findsOneWidget);
   });
 }

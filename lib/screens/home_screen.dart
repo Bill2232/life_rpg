@@ -12,14 +12,14 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   Player player = Player();
 
-  final AudioPlayer audioPlayer = AudioPlayer();
+  AudioPlayer? audioPlayer;
 
   late AnimationController levelController;
   late Animation<double> levelAnim;
@@ -80,8 +80,9 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       if (player.level > oldLevel) {
-        audioPlayer.play(AssetSource('sounds/level_up.mp3'));
-        levelController.forward().then((_) => levelController.reverse());
+        (audioPlayer ??= AudioPlayer()).play(
+          AssetSource('sounds/level_up.mp3'),
+        );
       }
 
       if (player.level == 2) {

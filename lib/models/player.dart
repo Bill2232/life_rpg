@@ -5,7 +5,7 @@ class Player {
   int xp;
   int xpToNext;
 
-  Player({this.level = 1, this.xp = 0, this.xpToNext = 250});
+  Player({this.level = 1, this.xp = 0, this.xpToNext = 150});
 
   void addXP(int amount) {
     xp += amount;
@@ -13,7 +13,7 @@ class Player {
     if (xp >= xpToNext) {
       xp -= xpToNext;
       level++;
-      xpToNext = level * 250;
+      xpToNext = 150 + (level - 1) * 25;
     }
   }
 
@@ -28,7 +28,7 @@ class Player {
     final box = Hive.box('gameBox');
     level = box.get('level', defaultValue: 1);
     xp = box.get('xp', defaultValue: 0);
-    xpToNext = box.get('xpToNext', defaultValue: 250);
+    xpToNext = box.get('xpToNext', defaultValue: 150 + (level - 1) * 25);
   }
 
   String getTitle() {
