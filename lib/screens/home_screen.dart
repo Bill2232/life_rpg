@@ -160,23 +160,86 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  Widget _buildProfileHeader() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(9, 8, 20, 8),
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(50),
+      ),
+      constraints: BoxConstraints(maxWidth: 520),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundImage: AssetImage(player.getAvatar()),
+            backgroundColor: Colors.transparent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  player.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 6),
+                XPBar(xp: player.xp, max: player.xpToNext),
+              ],
+            ),
+          ),
+          SizedBox(width: 12),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ScaleTransition(
+                scale: levelAnim,
+                child: Text(
+                  '${player.level}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'LEVEL',
+                style: TextStyle(fontSize: 11, color: Colors.white70),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Life RPG")),
+      appBar: AppBar(
+        toolbarHeight: 100,
+        titleSpacing: 0,
+        automaticallyImplyLeading: false,
+        title: Padding(
+          padding: EdgeInsets.only(left: 12, top: 8, right: 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _buildProfileHeader(),
+          ),
+        ),
+      ),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-            ScaleTransition(
-              scale: levelAnim,
-              child: Text(
-                "Level ${player.level} — ${player.getTitle()}",
-                style: TextStyle(fontSize: 22),
-              ),
-            ),
-            SizedBox(height: 8),
-            Image.asset(player.getAvatar(), height: 100),
             SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
@@ -187,7 +250,6 @@ class _HomeScreenState extends State<HomeScreen>
               },
               child: Text("View Badges"),
             ),
-            XPBar(xp: player.xp, max: player.xpToNext),
             SizedBox(height: 20),
 
             Expanded(

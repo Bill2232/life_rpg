@@ -4,8 +4,14 @@ class Player {
   int level;
   int xp;
   int xpToNext;
+  String name;
 
-  Player({this.level = 1, this.xp = 0, this.xpToNext = 150});
+  Player({
+    this.name = 'Player',
+    this.level = 1,
+    this.xp = 0,
+    this.xpToNext = 150,
+  });
 
   void addXP(int amount) {
     xp += amount;
@@ -22,6 +28,7 @@ class Player {
     box.put('level', level);
     box.put('xp', xp);
     box.put('xpToNext', xpToNext);
+    box.put('name', name);
   }
 
   void load() {
@@ -29,6 +36,7 @@ class Player {
     level = box.get('level', defaultValue: 1);
     xp = box.get('xp', defaultValue: 0);
     xpToNext = box.get('xpToNext', defaultValue: 150 + (level - 1) * 25);
+    name = box.get('name', defaultValue: 'Player');
   }
 
   String getTitle() {
