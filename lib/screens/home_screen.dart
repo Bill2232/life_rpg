@@ -127,22 +127,6 @@ class _HomeScreenState extends State<HomeScreen>
       _TaskFilter.side => gameProvider.sideTasks,
     };
 
-    if (visibleTasks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('📋 No tasks yet', style: AppTextStyles.heading2),
-            SizedBox(height: 12),
-            Text(
-              'Add your first quest to begin your journey',
-              style: AppTextStyles.body2.copyWith(color: AppColors.textMuted),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Padding(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -184,18 +168,34 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           SizedBox(height: 20),
-          // Task list
+          // Task list or empty state
           Expanded(
-            child: ListView.builder(
-              itemCount: visibleTasks.length,
-              itemBuilder: (context, index) {
-                final task = visibleTasks[index];
-                return TaskCard(
-                  task: task,
-                  onComplete: () => gameProvider.completeTask(task),
-                );
-              },
-            ),
+            child: visibleTasks.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('📋 No tasks yet', style: AppTextStyles.heading2),
+                        SizedBox(height: 12),
+                        Text(
+                          'Add your first quest to begin your journey',
+                          style: AppTextStyles.body2.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: visibleTasks.length,
+                    itemBuilder: (context, index) {
+                      final task = visibleTasks[index];
+                      return TaskCard(
+                        task: task,
+                        onComplete: () => gameProvider.completeTask(task),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
