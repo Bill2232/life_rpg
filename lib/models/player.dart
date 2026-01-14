@@ -1,54 +1,231 @@
 import 'package:hive/hive.dart';
+import '../models/badge.dart';
+import '../models/task.dart';
+import '../config/app_config.dart';
 
+/// Enhanced Player model with profile, stats, and badge system
 class Player {
   int level;
   int xp;
   int xpToNext;
-  String name;
+  String username;
+  int avatarIndex; // 0, 1, 2 for evolution stages
+  List<Badge> badges;
+  int totalTasksCompleted;
+  int totalXpGained;
+  DateTime createdAt;
+  DateTime lastActivityAt;
+
+  // Statistics
+  int dailyTasksCompleted;
+  int mainQuestsCompleted;
+  int sideQuestsCompleted;
+  int currentStreak;
+  int longestStreak;
 
   Player({
-    this.name = 'Player',
+    this.username = 'Adventurer',
     this.level = 1,
     this.xp = 0,
-    this.xpToNext = 150,
-  });
+    this.xpToNext = AppConfig.baseXpToLevel,
+    this.avatarIndex = 0,
+    List<Badge>? badges,
+    this.totalTasksCompleted = 0,
+    this.totalXpGained = 0,
+    DateTime? createdAt,
+    DateTime? lastActivityAt,
+    this.dailyTasksCompleted = 0,
+    this.mainQuestsCompleted = 0,
+    this.sideQuestsCompleted = 0,
+    this.currentStreak = 0,
+    this.longestStreak = 0,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       lastActivityAt = lastActivityAt ?? DateTime.now(),
+       badges = badges ?? Badge.getDefaultBadges();
 
-  void addXP(int amount) {
-    xp += amount;
+  /// Add XP and handle level up
+  int addXP(int amount) {
+    int finalAmount = amount;
+    xp += finalAmount;
 
-    if (xp >= xpToNext) {
+    while (xp >= xpToNext) {
       xp -= xpToNext;
       level++;
-      xpToNext = 150 + (level - 1) * 25;
+      xpToNext = AppConfig.baseXpToLevel + (level - 1) * AppConfig.xpIncrement;
+    }
+
+    totalXpGained += finalAmount;
+    lastActivityAt = DateTime.now();
+    save();
+
+    return finalAmount;
+  }
+
+  /// Deduct XP (for penalties)
+  void removeXP(int amount) {
+    xp -= amount;
+    if (xp < 0) xp = 0;
+    save();
+  }
+
+  /// Get current avatar path based on evolution stage
+  String getAvatar() {
+    if (level >= AppConfig.avatarStage2Threshold) {
+      avatarIndex = 1;
+    }
+    if (level >= AppConfig.avatarStage3Threshold) {
+      avatarIndex = 2;
+    }
+
+    final avatars = [
+      'assets/avatars/avatar1.png',
+      'assets/avatars/avatar2.png',
+      'assets/avatars/avatar3.png',
+    ];
+
+    return avatars[avatarIndex.clamp(0, 2)];
+  }
+
+  /// Get title based on level
+  String getTitle() {
+    if (level < AppConfig.avatarStage1Threshold) return 'Novice';
+    if (level < AppConfig.avatarStage2Threshold) return 'Disciplined';
+    if (level < 10) return 'Relentless';
+    if (level < 20) return 'Legend';
+    return 'Mythic';
+  }
+
+  /// Complete a task and update stats
+  void completeTask(Task task) {
+    totalTasksCompleted++;
+
+    switch (task.type) {
+      case TaskType.daily:
+        dailyTasksCompleted++;
+        break;
+      case TaskType.main:
+        mainQuestsCompleted++;
+        break;
+      case TaskType.side:
+        sideQuestsCompleted++;
+        break;
     }
   }
 
+  /// Update streak tracking
+  void updateStreak(bool completed) {
+    if (completed) {
+      currentStreak++;
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+      }
+    } else {
+      currentStreak = 0;
+    }
+    save();
+  }
+
+  /// Unlock a badge
+  void unlockBadge(String badgeId) {
+    final index = badges.indexWhere((b) => b.id == badgeId);
+    if (index != -1 && !badges[index].isUnlocked) {
+      badges[index] = badges[index].copyWith(unlockedAt: DateTime.now());
+      save();
+    }
+  }
+
+  /// Get unlocked badges
+  List<Badge> getUnlockedBadges() {
+    return badges.where((b) => b.isUnlocked).toList();
+  }
+
+  /// Get locked badges
+  List<Badge> getLockedBadges() {
+    return badges.where((b) => !b.isUnlocked).toList();
+  }
+
+  /// Save player to Hive
   void save() {
-    final box = Hive.box('gameBox');
+    final box = Hive.box(AppConfig.userBox);
     box.put('level', level);
     box.put('xp', xp);
     box.put('xpToNext', xpToNext);
-    box.put('name', name);
+    box.put('username', username);
+    box.put('avatarIndex', avatarIndex);
+    box.put('badges', badges.map((e) => e.toMap()).toList());
+    box.put('totalTasksCompleted', totalTasksCompleted);
+    box.put('totalXpGained', totalXpGained);
+    box.put('createdAt', createdAt.toIso8601String());
+    box.put('lastActivityAt', lastActivityAt.toIso8601String());
+    box.put('dailyTasksCompleted', dailyTasksCompleted);
+    box.put('mainQuestsCompleted', mainQuestsCompleted);
+    box.put('sideQuestsCompleted', sideQuestsCompleted);
+    box.put('currentStreak', currentStreak);
+    box.put('longestStreak', longestStreak);
   }
 
+  /// Load player from Hive
   void load() {
-    final box = Hive.box('gameBox');
-    level = box.get('level', defaultValue: 1);
-    xp = box.get('xp', defaultValue: 0);
-    xpToNext = box.get('xpToNext', defaultValue: 150 + (level - 1) * 25);
-    name = box.get('name', defaultValue: 'Player');
+    final box = Hive.box(AppConfig.userBox);
+    level = box.get('level', defaultValue: 1) as int;
+    xp = box.get('xp', defaultValue: 0) as int;
+    xpToNext =
+        box.get(
+              'xpToNext',
+              defaultValue:
+                  AppConfig.baseXpToLevel + (level - 1) * AppConfig.xpIncrement,
+            )
+            as int;
+    username = box.get('username', defaultValue: 'Adventurer') as String;
+    avatarIndex = box.get('avatarIndex', defaultValue: 0) as int;
+
+    final badgesList = box.get('badges', defaultValue: []) as List?;
+    if (badgesList != null && badgesList.isNotEmpty) {
+      badges = List<Map>.from(
+        badgesList,
+      ).map((e) => Badge.fromMap(e as Map<String, dynamic>)).toList();
+    } else {
+      badges = Badge.getDefaultBadges();
+    }
+
+    totalTasksCompleted =
+        box.get('totalTasksCompleted', defaultValue: 0) as int;
+    totalXpGained = box.get('totalXpGained', defaultValue: 0) as int;
+    createdAt = DateTime.parse(
+      box.get('createdAt', defaultValue: DateTime.now().toIso8601String())
+          as String,
+    );
+    lastActivityAt = DateTime.parse(
+      box.get('lastActivityAt', defaultValue: DateTime.now().toIso8601String())
+          as String,
+    );
+    dailyTasksCompleted =
+        box.get('dailyTasksCompleted', defaultValue: 0) as int;
+    mainQuestsCompleted =
+        box.get('mainQuestsCompleted', defaultValue: 0) as int;
+    sideQuestsCompleted =
+        box.get('sideQuestsCompleted', defaultValue: 0) as int;
+    currentStreak = box.get('currentStreak', defaultValue: 0) as int;
+    longestStreak = box.get('longestStreak', defaultValue: 0) as int;
   }
 
-  String getTitle() {
-    if (level < 3) return "Novice";
-    if (level < 6) return "Disciplined";
-    if (level < 10) return "Relentless";
-    return "Legend";
-  }
-
-  String getAvatar() {
-    if (level < 3) return "assets/avatars/avatar1.png";
-    if (level < 6) return "assets/avatars/avatar2.png";
-    return "assets/avatars/avatar3.png";
+  /// Reset progress (for settings)
+  void resetProgress() {
+    level = 1;
+    xp = 0;
+    xpToNext = AppConfig.baseXpToLevel;
+    username = 'Adventurer';
+    avatarIndex = 0;
+    badges = Badge.getDefaultBadges();
+    totalTasksCompleted = 0;
+    totalXpGained = 0;
+    createdAt = DateTime.now();
+    lastActivityAt = DateTime.now();
+    dailyTasksCompleted = 0;
+    mainQuestsCompleted = 0;
+    sideQuestsCompleted = 0;
+    currentStreak = 0;
+    longestStreak = 0;
+    save();
   }
 }

@@ -7,22 +7,39 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:life_rpg/main.dart';
+import 'package:life_rpg/providers/auth_provider.dart';
+import 'package:life_rpg/providers/game_provider.dart';
+import 'package:life_rpg/services/settings_service.dart';
 
 void main() {
-  testWidgets('App boots and shows title', (WidgetTester tester) async {
-    // Ensure the widget test binding is initialized. No Hive setup needed
-    // because we supply a test-safe `homeOverride`.
+  testWidgets('App boots successfully', (WidgetTester tester) async {
+    // Ensure the widget test binding is initialized
     TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Build our app with a lightweight override for Home to avoid
-    // platform-sensitive initializations in widget tests.
-    await tester.pumpWidget(
-      const MyApp(homeOverride: Scaffold(body: Text('Test Home'))),
-    );
+    // Mock SharedPreferences and register GetIt dependencies for the test.
+    SharedPreferences.setMockInitialValues({});
+    await getIt.reset();
 
-    // Verify that the override content is present.
-    expect(find.text('Test Home'), findsOneWidget);
+    final settingsService = SettingsService();
+    await settingsService.initialize();
+    getIt.registerSingleton<SettingsService>(settingsService);
+
+    final gameProvider = GameProvider();
+    // Avoid GameProvider.initialize() here to keep the test lightweight.
+    getIt.registerSingleton<GameProvider>(gameProvider);
+
+    final authProvider = AuthProvider();
+    await authProvider.initialize();
+    getIt.registerSingleton<AuthProvider>(authProvider);
+
+    // Build our app
+    await tester.pumpWidget(const MyApp());
+    await tester.pump();
+
+    // Verify that app has loaded
+    expect(find.byType(MaterialApp), findsOneWidget);
   });
 }
