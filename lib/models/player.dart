@@ -4,12 +4,15 @@ import '../models/task.dart';
 import '../config/app_config.dart';
 
 /// Enhanced Player model with profile, stats, and badge system
+
 class Player {
   int level;
   int xp;
   int xpToNext;
   String username;
-  int avatarIndex; // 0, 1, 2 for evolution stages
+  String? avatarImagePath; // User-selected image path
+  List<String> unlockedBorders; // List of border IDs
+  String? selectedBorderId;
   List<Badge> badges;
   int totalTasksCompleted;
   int totalXpGained;
@@ -28,7 +31,9 @@ class Player {
     this.level = 1,
     this.xp = 0,
     this.xpToNext = AppConfig.baseXpToLevel,
-    this.avatarIndex = 0,
+    this.avatarImagePath,
+    List<String>? unlockedBorders,
+    this.selectedBorderId,
     List<Badge>? badges,
     this.totalTasksCompleted = 0,
     this.totalXpGained = 0,
@@ -41,7 +46,8 @@ class Player {
     this.longestStreak = 0,
   }) : createdAt = createdAt ?? DateTime.now(),
        lastActivityAt = lastActivityAt ?? DateTime.now(),
-       badges = badges ?? Badge.getDefaultBadges();
+       badges = badges ?? Badge.getDefaultBadges(),
+       unlockedBorders = unlockedBorders ?? ['default'];
 
   /// Add XP and handle level up
   int addXP(int amount) {
@@ -70,20 +76,13 @@ class Player {
 
   /// Get current avatar path based on evolution stage
   String getAvatar() {
-    if (level >= AppConfig.avatarStage2Threshold) {
-      avatarIndex = 1;
-    }
-    if (level >= AppConfig.avatarStage3Threshold) {
-      avatarIndex = 2;
+    // If the user selected an image, return it.
+    if (avatarImagePath != null && avatarImagePath!.isNotEmpty) {
+      return avatarImagePath!;
     }
 
-    final avatars = [
-      'assets/avatars/avatar1.png',
-      'assets/avatars/avatar2.png',
-      'assets/avatars/avatar3.png',
-    ];
-
-    return avatars[avatarIndex.clamp(0, 2)];
+    // No default avatar files — return empty to indicate "no avatar set".
+    return '';
   }
 
   /// Get title based on level
@@ -151,7 +150,9 @@ class Player {
     box.put('xp', xp);
     box.put('xpToNext', xpToNext);
     box.put('username', username);
-    box.put('avatarIndex', avatarIndex);
+    box.put('avatarImagePath', avatarImagePath);
+    box.put('unlockedBorders', unlockedBorders);
+    box.put('selectedBorderId', selectedBorderId);
     box.put('badges', badges.map((e) => e.toMap()).toList());
     box.put('totalTasksCompleted', totalTasksCompleted);
     box.put('totalXpGained', totalXpGained);
@@ -177,7 +178,16 @@ class Player {
             )
             as int;
     username = box.get('username', defaultValue: 'Adventurer') as String;
-    avatarIndex = box.get('avatarIndex', defaultValue: 0) as int;
+    avatarImagePath = box.get('avatarImagePath') as String?;
+    final borderList =
+        box.get('unlockedBorders', defaultValue: ['default']) as List?;
+    if (borderList != null && borderList.isNotEmpty) {
+      unlockedBorders = List<String>.from(borderList);
+    } else {
+      unlockedBorders = ['default'];
+    }
+    selectedBorderId =
+        box.get('selectedBorderId', defaultValue: 'default') as String?;
 
     final badgesList = box.get('badges', defaultValue: []) as List?;
     if (badgesList != null && badgesList.isNotEmpty) {
@@ -215,7 +225,9 @@ class Player {
     xp = 0;
     xpToNext = AppConfig.baseXpToLevel;
     username = 'Adventurer';
-    avatarIndex = 0;
+    avatarImagePath = null;
+    unlockedBorders = ['default'];
+    selectedBorderId = 'default';
     badges = Badge.getDefaultBadges();
     totalTasksCompleted = 0;
     totalXpGained = 0;

@@ -143,6 +143,7 @@ class GameProvider extends ChangeNotifier {
     if (_player.level > oldLevel) {
       await _audioService?.playLevelUp();
       _checkAndUnlockBadges();
+      _checkAndUnlockBorders();
 
       NotificationService.showNotification(
         "Level Up! 🎉",
@@ -200,11 +201,63 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  /// Unlock border decorations based on level thresholds
+  void _checkAndUnlockBorders() {
+    // Level thresholds for rank borders. Filenames live in assets/avatars as
+    // '<id>-rank.png' (e.g. wood-rank.png).
+    final mapping = {
+      2: 'wood',
+      3: 'iron',
+      5: 'bronz',
+      7: 'silver',
+      10: 'gold',
+      15: 'champion',
+    };
+
+    for (var entry in mapping.entries) {
+      final requiredLevel = entry.key;
+      final borderId = entry.value;
+      if (_player.level >= requiredLevel &&
+          !_player.unlockedBorders.contains(borderId)) {
+        unlockBorder(borderId);
+        _audioService?.playBadgeUnlock();
+        NotificationService.showNotification(
+          'Border Unlocked',
+          'You unlocked the ${borderId[0].toUpperCase()}${borderId.substring(1)} border!',
+        );
+      }
+    }
+  }
+
   /// Update player username
   Future<void> updateUsername(String newName) async {
     _player.username = newName;
     _player.save();
     notifyListeners();
+  }
+
+  /// Set avatar image path (from camera/gallery)
+  Future<void> setAvatarImagePath(String? path) async {
+    _player.avatarImagePath = path;
+    _player.save();
+    notifyListeners();
+  }
+
+  /// Select a border id from unlocked borders
+  Future<void> selectBorder(String borderId) async {
+    if (!_player.unlockedBorders.contains(borderId)) return;
+    _player.selectedBorderId = borderId;
+    _player.save();
+    notifyListeners();
+  }
+
+  /// Unlock a border (called on level up or achievements)
+  Future<void> unlockBorder(String borderId) async {
+    if (!_player.unlockedBorders.contains(borderId)) {
+      _player.unlockedBorders.add(borderId);
+      _player.save();
+      notifyListeners();
+    }
   }
 
   /// Reset all progress

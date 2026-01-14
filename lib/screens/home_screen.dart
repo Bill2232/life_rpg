@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/task.dart';
@@ -297,7 +300,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildProfileHeader(GameProvider gameProvider) {
     final player = gameProvider.player;
-
     return Container(
       padding: EdgeInsets.fromLTRB(9, 8, 20, 8),
       decoration: BoxDecoration(
@@ -309,10 +311,38 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundImage: AssetImage(player.getAvatar()),
-            backgroundColor: AppColors.primary.withAlpha(26),
+          GestureDetector(
+            onTap: () => _showAvatarOptions(context, gameProvider),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.primary.withAlpha(26),
+                  backgroundImage:
+                      player.avatarImagePath != null &&
+                          player.avatarImagePath!.isNotEmpty
+                      ? FileImage(File(player.avatarImagePath!))
+                            as ImageProvider
+                      : (player.getAvatar().isNotEmpty
+                            ? AssetImage(player.getAvatar())
+                            : null),
+                  child:
+                      player.avatarImagePath == null &&
+                          player.getAvatar().isEmpty
+                      ? Icon(Icons.person, color: AppColors.textMuted)
+                      : null,
+                ),
+                if (player.selectedBorderId != null &&
+                    player.selectedBorderId != 'default')
+                  Image.asset(
+                    'assets/avatars/${player.selectedBorderId}-rank.png',
+                    width: 76,
+                    height: 76,
+                    fit: BoxFit.contain,
+                  ),
+              ],
+            ),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -365,6 +395,138 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showAvatarOptions(BuildContext context, GameProvider gameProvider) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_camera),
+                title: Text('Take Photo'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final picked = await ImagePicker().pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 85,
+                  );
+                  if (picked != null) {
+                    await gameProvider.setAvatarImagePath(picked.path);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('Choose from Gallery'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final picked = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 85,
+                  );
+                  if (picked != null) {
+                    await gameProvider.setAvatarImagePath(picked.path);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.border_all),
+                title: Text('Select Border'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showBorderSelector(context, gameProvider);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.close),
+                title: Text('Cancel'),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showBorderSelector(BuildContext context, GameProvider gameProvider) {
+    final borders = [
+      {'id': 'default', 'name': 'Default'},
+      {'id': 'wood', 'name': 'Wood'},
+      {'id': 'iron', 'name': 'Iron'},
+      {'id': 'bronz', 'name': 'Bronze'},
+      {'id': 'silver', 'name': 'Silver'},
+      {'id': 'gold', 'name': 'Gold'},
+      {'id': 'champion', 'name': 'Champion'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Choose Border', style: AppTextStyles.heading3),
+                SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  children: borders.map((b) {
+                    final id = b['id']!;
+                    final unlocked = gameProvider.player.unlockedBorders
+                        .contains(id);
+                    return GestureDetector(
+                      onTap: unlocked
+                          ? () => gameProvider.selectBorder(id)
+                          : null,
+                      child: Opacity(
+                        opacity: unlocked ? 1.0 : 0.35,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: id == 'default'
+                                  ? CircleAvatar(
+                                      radius: 32,
+                                      backgroundColor: AppColors.bgDark,
+                                    )
+                                  : Image.asset(
+                                      'assets/avatars/$id-rank.png',
+                                      fit: BoxFit.contain,
+                                    ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(b['name']!, style: AppTextStyles.label),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 12),
+                Text('Locked borders unlock as you level up.'),
+                SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Done'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
