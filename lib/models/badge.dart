@@ -32,16 +32,17 @@ class Badge {
     };
   }
 
-  static Badge fromMap(Map<String, dynamic> map) {
+  static Badge fromMap(Map map) {
+    final data = Map<String, dynamic>.from(map);
     return Badge(
-      id: map['id'] as String,
-      title: map['title'] as String,
-      description: map['description'] as String,
-      iconPath: map['iconPath'] as String,
-      requiredLevel: map['requiredLevel'] as int,
-      requiredXp: map['requiredXp'] as int?,
-      unlockedAt: map['unlockedAt'] != null
-          ? DateTime.parse(map['unlockedAt'] as String)
+      id: data['id'] as String,
+      title: data['title'] as String,
+      description: data['description'] as String,
+      iconPath: data['iconPath'] as String,
+      requiredLevel: (data['requiredLevel'] as num).toInt(),
+      requiredXp: (data['requiredXp'] as num?)?.toInt(),
+      unlockedAt: data['unlockedAt'] != null
+          ? DateTime.parse(data['unlockedAt'] as String)
           : null,
     );
   }

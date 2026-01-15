@@ -26,12 +26,13 @@ class Task {
   }
 
   static Task fromMap(Map map) {
+    final data = Map<String, dynamic>.from(map);
     return Task(
-      title: map['title'],
-      type: TaskType.values[map['type']],
-      xp: map['xp'],
-      completed: map['completed'],
-      streak: map['streak'] ?? 0,
+      title: (data['title'] ?? '') as String,
+      type: TaskType.values[(data['type'] as num).toInt()],
+      xp: (data['xp'] as num).toInt(),
+      completed: (data['completed'] as bool?) ?? false,
+      streak: (data['streak'] as num?)?.toInt() ?? 0,
     );
   }
 }

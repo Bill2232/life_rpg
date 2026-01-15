@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
 import '../models/badge.dart';
 import '../models/task.dart';
 import '../config/app_config.dart';
@@ -109,6 +110,9 @@ class Player {
         sideQuestsCompleted++;
         break;
     }
+
+    lastActivityAt = DateTime.now();
+    save();
   }
 
   /// Update streak tracking
@@ -146,6 +150,11 @@ class Player {
   /// Save player to Hive
   void save() {
     final box = Hive.box(AppConfig.userBox);
+    if (kDebugMode) {
+      print(
+        '[DEBUG] Saving player data: level=$level, xp=$xp, badges=${badges.map((b) => b.toMap()).toList()}',
+      );
+    }
     box.put('level', level);
     box.put('xp', xp);
     box.put('xpToNext', xpToNext);
@@ -189,14 +198,33 @@ class Player {
     selectedBorderId =
         box.get('selectedBorderId', defaultValue: 'default') as String?;
 
-    final badgesList = box.get('badges', defaultValue: []) as List?;
-    if (badgesList != null && badgesList.isNotEmpty) {
-      badges = List<Map>.from(
-        badgesList,
-      ).map((e) => Badge.fromMap(e as Map<String, dynamic>)).toList();
-    } else {
-      badges = Badge.getDefaultBadges();
+    final badgesRaw = box.get('badges');
+    if (kDebugMode) {
+      print(
+        '[DEBUG] Loading player data: level=${box.get('level')}, xp=${box.get('xp')}, badges=$badgesRaw',
+      );
     }
+
+    // Merge persisted unlock state (unlockedAt) onto the current default badge list.
+    // This prevents:
+    // - load crashes due to Map<dynamic,dynamic> coming from Hive
+    // - losing unlocks when new badges are added in future versions
+    final defaults = Badge.getDefaultBadges();
+    final Map<String, Badge> persistedById = {};
+    if (badgesRaw is List) {
+      for (final entry in badgesRaw) {
+        if (entry is Map) {
+          final persisted = Badge.fromMap(entry);
+          persistedById[persisted.id] = persisted;
+        }
+      }
+    }
+    badges = defaults.map((b) {
+      final persisted = persistedById[b.id];
+      return persisted?.unlockedAt != null
+          ? b.copyWith(unlockedAt: persisted!.unlockedAt)
+          : b;
+    }).toList();
 
     totalTasksCompleted =
         box.get('totalTasksCompleted', defaultValue: 0) as int;

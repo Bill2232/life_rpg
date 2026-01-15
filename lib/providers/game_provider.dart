@@ -67,20 +67,29 @@ class GameProvider extends ChangeNotifier {
     final box = Hive.box(AppConfig.tasksBox);
     final saved = box.get('tasks');
 
-    if (saved != null) {
-      _tasks = List<Map>.from(
-        saved,
-      ).map((e) => Task.fromMap(e as Map<String, dynamic>)).toList();
-    } else {
-      // Start with no tasks; user must add quests manually.
-      _tasks = [];
-      _saveTasks();
+    if (kDebugMode) {
+      print('[DEBUG] Loading tasks: $saved');
     }
+
+    // Hive returns List<dynamic> where each item is usually Map<dynamic,dynamic>.
+    // Avoid casting to Map<String,dynamic> to prevent load crashes.
+    if (saved is List) {
+      _tasks = saved.whereType<Map>().map(Task.fromMap).toList();
+      return;
+    }
+
+    // Start with no tasks; user must add quests manually.
+    _tasks = [];
+    _saveTasks();
   }
 
   /// Save tasks to storage
   void _saveTasks() {
     final box = Hive.box(AppConfig.tasksBox);
+
+    if (kDebugMode) {
+      print('[DEBUG] Saving tasks: ${_tasks.map((e) => e.toMap()).toList()}');
+    }
     box.put('tasks', _tasks.map((e) => e.toMap()).toList());
     box.put('lastDate', _today);
   }
